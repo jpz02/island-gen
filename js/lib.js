@@ -198,14 +198,10 @@ function PerlinNoise (seed, octaves, scale) {
     return this;
 }
 
-function gray_color(val) {
-    return new paper.Color(val, val, val);
-}
-
 let ColourDB = {
     base_ocean: new paper.Color(0.149, 0.243, 0.549),
     base_coast: new paper.Color(1, 1, 0.667),
-    base_snow: new paper.Color(0.996, 0.996, 0.996),
+    base_snow: new paper.Color(1, 1, 1),
 
     scale: function (color, brightness) {
         return color * brightness;

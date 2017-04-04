@@ -32,6 +32,10 @@
                             <span class="tt-label">Location</span>
                             <span class="tt-data">({{ popup.x }}, {{ popup.y }})</span>
                         </li>
+                        <li>
+                            <span class="tt-label">Temperature</span>
+                            <span class="tt-data">{{ popup.temp }} <sup>o</sup>C</span>
+                        </li>
                     </ul>
                     <div id="tt-image"></div>
                 </div>
@@ -75,17 +79,17 @@
                 <p class="message-box" :hidden="built">You need to build the world first before you can make changes to the content</p>
                 <div class="form-group form-group-sm col-xs-12 col-sm-6">
                     <label for="sea_level">Sea Level</label>
-                    <input type="number" v-model.number="world.config.sea_level" step="0.002" min="0" max="1" class="form-control" id="sea_level" placeholder="Sea Level">
+                    <input type="number" v-model.number="world.config.sea_level" step="0.005" min="0" max="1" class="form-control" id="sea_level" placeholder="Sea Level">
                     <small id="seaLevelHelp" class="form-text text-muted">Percentage of height map below</small>
                 </div>
                 <div class="form-group form-group-sm col-xs-12 col-sm-6">
                     <label for="coast_level">Coast Level</label>
-                    <input type="number" v-model.number="world.config.coast_level" step="0.002" min="0" max="1" class="form-control" id="coast_level" placeholder="Coast Level">
+                    <input type="number" v-model.number="world.config.coast_level" step="0.005" min="0" max="1" class="form-control" id="coast_level" placeholder="Coast Level">
                     <small id="coastLevelHelp" class="form-text text-muted">Percentage of height map below added to sea level</small>
                 </div>
                 <div class="form-group form-group-sm col-xs-12 col-sm-6">
                     <label for="snow_level">Snow Level</label>
-                    <input type="number" v-model.number="world.config.snow_level" step="0.002" min="0" max="1" class="form-control" id="snow_level" placeholder="Snow Level">
+                    <input type="number" v-model.number="world.config.snow_level" step="0.005" min="0" max="1" class="form-control" id="snow_level" placeholder="Snow Level">
                     <small id="snowLevelHelp" class="form-text text-muted">Percentage above which is snow</small>
                 </div>
             </fieldset>

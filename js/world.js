@@ -10,13 +10,14 @@ function World (app) {
         perlin: {
             octaves: 8,
             scale: 256,
-            diminish: 0.55,
+            diminish: 0.50,
         },
         size: 180,
-        sea_level: 0.08,
-        coast_level: 0.03, // above sea level
-        snow_level: 0.5,
+        sea_level: 0.5,
+        coast_level: 0.02, // above sea level
+        snow_level: 0.8,
         real_scale: 750,
+        base_temp: 30,
     };
 
     this.showToolTip = function(event) {
@@ -30,6 +31,8 @@ function World (app) {
             elevation: (cell.data.landHeight * real).toFixed(2),
             x: cell.x,
             y: cell.y,
+            temp: cell.data.temp,
+            hm: cell.data.height.toFixed(2),
         };
 
         // world.view.resetSelected();
@@ -98,6 +101,7 @@ function World (app) {
             let cell = this.map.cells[i];
             let h = cell.data.height;
 
+            cell.data.temp = world.lib.elevationToTemp(cell.data.height);
             cell.data.landHeight = h - world.config.sea_level;
 
             if (h < world.config.sea_level) {
@@ -112,6 +116,22 @@ function World (app) {
             }
         }
         console.log(test);
+    };
+
+    this.lib = {
+        elevationToTemp: function (height) {
+            let sea = world.config.sea_level;
+            let snow = world.config.snow_level;
+            let temp = world.config.base_temp;
+            let val = 0;
+
+            if (height < sea) {
+                val = temp;
+            } else {
+                val = (((temp + 3) * height) / (sea - snow)) - ((3 * sea + snow * temp)/ (sea - snow));
+            }
+            return val.toFixed(2);
+        },
     };
 
     this.view = {
@@ -135,7 +155,7 @@ function World (app) {
                     let brightness = 1;
                     switch(data.biome) {
                         case B_OCEAN:
-                            brightness = (data.height / world.config.sea_level) * 0.5 + 0.5;
+                            brightness = (data.height / world.config.sea_level) * 0.9 + 0.1;
                             poly.fillColor = ColourDB.base_ocean.multiply(brightness);
                             break;
                         case B_COAST:
@@ -145,12 +165,12 @@ function World (app) {
                             poly.fillColor = ColourDB.base_coast.multiply(brightness);
                             break;
                         case B_SNOW:
-                            brightness = ((data.height - world.config.snow_level) / (1 - world.config.snow_level)) * 0.15 + 0.85;
+                            brightness = ((data.height - world.config.snow_level) / (1 - world.config.snow_level)) * 0.4 + 0.9;
                             poly.fillColor = ColourDB.base_snow.multiply(brightness);
                             break;
                         case B_UNK:
                         default:
-                            poly.fillColor = new paper.Color(0.2, data.height* 0.3 + 0.3, 0.2);
+                            poly.fillColor = new paper.Color(0, data.height* 0.5, 0);
                             break;
                     }
                 }

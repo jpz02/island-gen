@@ -11,6 +11,8 @@ $(function() {
                 elevation: 0,
                 x: 0,
                 y: 0,
+                temp: 0,
+                hm: 0,
             },
             built: false,
         },
@@ -35,9 +37,9 @@ $(function() {
                 paper.project.activeLayer.removeChildren();
                 this.world.init();
                 this.world.makeHeightMap();
-                //this.world.calculateHeightBiomes();
-                //this.world.view.showRenderedMap();
-                this.world.view.showHeightMap();
+                this.world.calculateHeightBiomes();
+                this.world.view.showRenderedMap();
+                //this.world.view.showHeightMap();
                 this.built = true;
             },
 
