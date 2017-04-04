@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="js/contrib/jquery-3.2.0.js"></script>
+    <script src="js/contrib/bootstrap.js"></script>
+    <script src="js/contrib/vue.js"></script>
+    <script src="js/contrib/paper-full.js"></script>
+    <script src="js/lib.js"></script>
+    <script src="js/world.js"></script>
+    <script src="js/app.js"></script>
+    <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="css/app.css" rel="stylesheet" type="text/css">
+    <meta charset="UTF-8">
+    <title>Map Gen</title>
+</head>
+<body>
+<div id="main" class="container">
+    <div id="simulation">
+        <div id="map-container">
+            <h1>Map Generator</h1>
+            <p>Current world size: {{ world.config.size }} unit<sup>2</sup> - {{ world.config.size * world.config.size}} units</p>
+            <div id="canvas-container">
+                <canvas id="main-stage" resize></canvas>
+                <div id="tooltip-template">
+                    <h4>{{ popup.title }} Biome</h4>
+                    <ul>
+                        <li>
+                            <span class="tt-label">Elevation</span>
+                            <span class="tt-data">{{ popup.elevation }}m</span>
+                        </li>
+                        <li>
+                            <span class="tt-label">Location</span>
+                            <span class="tt-data">({{ popup.x }}, {{ popup.y }})</span>
+                        </li>
+                    </ul>
+                    <div id="tt-image"></div>
+                </div>
+            </div>
+        </div>
+        <div id="ui-container">
+            <h2>World Settings</h2>
+            <fieldset v-on:change="tierOneChange">
+                <h4>Structure</h4>
+                <div class="form-group form-group-sm col-xs-12 col-sm-6">
+                    <label for="world_size">World Size</label>
+                    <input type="number" v-model.number="world.config.size" min="1" max="200" class="form-control" id="world_size" placeholder="Enter world size">
+                    <small id="sizeHelp" class="form-text text-muted">Area will be size<sup>2</sup></small>
+                </div>
+                <div class="form-group form-group-sm col-xs-12 col-sm-6">
+                    <label for="world_seed">World Seed</label>
+                    <input type="number" v-model.number="world.config.seed" min="1" max="2000000000" class="form-control" id="world_seed" placeholder="Enter world seed">
+                    <small id="seedHelp" class="form-text text-muted">A number greater than 0</small>
+                </div>
+                <div class="form-group form-group-sm col-xs-12 col-sm-6">
+                    <label for="perlin_octaves">Octaves</label>
+                    <input type="number" v-model.number="world.config.perlin.octaves" min="1" max="200" class="form-control" id="perlin_octaves" placeholder="Enter number of octaves">
+                    <small id="octavesHelp" class="form-text text-muted">Number of octaves</small>
+                </div>
+                <div class="form-group form-group-sm col-xs-12 col-sm-6">
+                    <label for="scale_start">Starting Scale</label>
+                    <input type="number" v-model.number="world.config.perlin.scale" min="1" max="2000000000" class="form-control" id="scale_start" placeholder="Enter starting scale">
+                    <small id="scaleHelp" class="form-text text-muted">Scale of simplex noise samples</small>
+                </div>
+                <div class="form-group form-group-sm col-xs-12 col-sm-6">
+                    <label for="diminish_value">Diminishing Factor</label>
+                    <input type="number" v-model.number="world.config.perlin.diminish" step="0.01" min="0" max="1" class="form-control" id="diminish_value" placeholder="Enter diminishing factor">
+                    <small id="diminishHelp" class="form-text text-muted">By how much should amplitude diminish</small>
+                </div>
+                <div class="form-group form-group-sm col-sm-12">
+                    <inut type="button" v-on:click="initWorld" class="btn btn-primary">Build</inut>
+                </div>
+            </fieldset>
+            <fieldset v-on:change="updateContent" id="ui-tier2-settings" :disabled="!built">
+                <h4>Content</h4>
+                <p class="message-box" :hidden="built">You need to build the world first before you can make changes to the content</p>
+                <div class="form-group form-group-sm col-xs-12 col-sm-6">
+                    <label for="sea_level">Sea Level</label>
+                    <input type="number" v-model.number="world.config.sea_level" step="0.002" min="0" max="1" class="form-control" id="sea_level" placeholder="Sea Level">
+                    <small id="seaLevelHelp" class="form-text text-muted">Percentage of height map below</small>
+                </div>
+                <div class="form-group form-group-sm col-xs-12 col-sm-6">
+                    <label for="coast_level">Coast Level</label>
+                    <input type="number" v-model.number="world.config.coast_level" step="0.002" min="0" max="1" class="form-control" id="coast_level" placeholder="Coast Level">
+                    <small id="coastLevelHelp" class="form-text text-muted">Percentage of height map below added to sea level</small>
+                </div>
+                <div class="form-group form-group-sm col-xs-12 col-sm-6">
+                    <label for="snow_level">Snow Level</label>
+                    <input type="number" v-model.number="world.config.snow_level" step="0.002" min="0" max="1" class="form-control" id="snow_level" placeholder="Snow Level">
+                    <small id="snowLevelHelp" class="form-text text-muted">Percentage above which is snow</small>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+</div>
+</body>
+</html>
