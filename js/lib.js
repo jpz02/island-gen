@@ -26,6 +26,27 @@ function RandomGen (seed) {
     return this;
 }
 
+function MathRandomGen (seed) {
+
+    this.seed = function(seed) {
+        // do nothing
+    };
+
+    this.gen = function() {
+        return Math.random() * Number.MAX_SAFE_INTEGER;
+    };
+
+    this.next = function () {
+        return Math.random();
+    };
+
+    this.range = function(min, max) {
+        return (this.gen() % (max - min + 1)) + min;
+    };
+
+    return this;
+}
+
 function SimplexNoise (seed) {
     // based upon Stefan Gustavson's work/implementation
     // http://staffwww.itn.liu.se/~stegu/simplexnoise/simplexnoise.pdf

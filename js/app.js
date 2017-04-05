@@ -5,7 +5,6 @@ $(function() {
 
         data: {
             world: new World(),
-            graphics_init: false,
             popup: {
                 title: "Unknown",
                 elevation: 0,
@@ -13,14 +12,19 @@ $(function() {
                 y: 0,
                 temp: 0,
                 hm: 0,
+                precip: 0,
             },
             built: false,
+            view: {
+                biomes: true,
+                height: false,
+                precip: false,
+            },
         },
 
         mounted: function() {
             let app = this;
             paper.setup(document.getElementById('main-stage'));
-            graphics_init = true;
 
             this.world.app = this;
 
@@ -33,26 +37,65 @@ $(function() {
         },
 
         methods: {
-            initWorld: function(event) {
+            initWorld: function(ev) {
                 paper.project.activeLayer.removeChildren();
                 this.world.init();
                 this.world.makeHeightMap();
                 this.world.calculateHeightBiomes();
-                this.world.view.showRenderedMap();
-                //this.world.view.showHeightMap();
+                this.view.biomes = true;
                 this.built = true;
+                this.updateView();
             },
 
-            tierOneChange: function(event) {
+            tierOneChange: function(ev) {
                 this.built = false;
             },
 
-            updateContent: function(event) {
-                console.log("updating world content");
+            updateContent: function(ev) {
                 console.log(this.world.config.coast_level);
                 this.world.calculateHeightBiomes();
-                this.world.view.showRenderedMap();
-            }
+                this.updateView();
+            },
+
+            updateView: function() {
+                let hasSelection = false;
+                for (let view in this.view) {
+                    hasSelection = this.view[view];
+                    if (hasSelection) break;
+                }
+                if (!hasSelection) {
+                    this.view.biomes = true;
+                }
+
+                if (this.view.biomes) {
+                    this.world.view.showRenderedMap();
+                }
+
+                if (this.view.height) {
+                    this.world.view.showHeightMap();
+                }
+
+                if (this.view.precip) {
+                    this.world.view.showPrecipitation();
+                }
+            },
+
+            showBiomes: function (ev) {
+                this.view.biomes = !this.view.biomes;
+                this.view.height = false;
+                this.updateView();
+            },
+            showHeight: function (ev) {
+                this.view.biomes = false;
+                this.view.precip = false;
+                this.view.height = !this.view.height;
+                this.updateView();
+            },
+            showPrecip: function (ev) {
+                this.view.height = false;
+                this.view.precip = !this.view.precip;
+                this.updateView();
+            },
         },
     });
 

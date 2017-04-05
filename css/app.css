@@ -67,14 +67,14 @@ h1, h2 {
 #tooltip-template ul {
     padding-left: 0;
     list-style: none;
-    margin: 2px;
+    margin: 2px 2px 5px;
 }
 
 #tooltip-template .tt-label {
     font-weight: bold;
     width: 100px;
     text-align: right;
-    margin: 5px;
+    margin: 2px;
 }
 
 #tooltip-template ul span {
@@ -96,4 +96,8 @@ h1, h2 {
     color: #123;
     padding: 3px 10px;
     border-radius: 2px;
+}
+
+fieldset {
+    margin: 8px 0;
 }
