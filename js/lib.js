@@ -220,9 +220,17 @@ function PerlinNoise (seed, octaves, scale) {
 }
 
 let ColourDB = {
-    base_ocean: new paper.Color(0.149, 0.243, 0.549),
-    base_coast: new paper.Color(1, 1, 0.667),
-    base_snow: new paper.Color(1, 1, 1),
+    base_ocean: new paper.Color("#263E8C"),
+    base_coast: new paper.Color("#FFA"),
+    base_snow: new paper.Color("#FFF"),
+    base_tundra: new paper.Color("#67CDBC"),
+    base_temperate: new paper.Color("#297351"),
+    base_tropical: new paper.Color("#0c9310"),
+    base_grassland: new paper.Color("#86ca65"),
+    base_desert: new paper.Color("#e8d498"),
+
+
+
 
     scale: function (color, brightness) {
         return color * brightness;
@@ -233,3 +241,11 @@ let ColourDB = {
         return color * scale;
     }
 };
+
+function between (x, min, max) {
+    return x >= min && x <= max;
+}
+
+function pc_between (x, min, max) {
+    return (x - min) / (max - min);
+}

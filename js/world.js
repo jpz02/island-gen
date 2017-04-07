@@ -20,9 +20,7 @@ function World (app) {
         base_temp: 36,
     };
 
-    this.bounds = {
-        maxPrecip: 0,
-    };
+    this.bounds = {};
 
     this.showToolTip = function(event) {
         let cell = world.map.getCell(event.target.x, event.target.y);
@@ -45,7 +43,7 @@ function World (app) {
         poly.oldColor = poly.fillColor;
         // poly.fillColor = "#F00";
 
-        console.log(cell.data.air_water + " " + cell.data.precip + " ,TEST TEMP: " + cell.data.test_temp);
+        console.log(cell.data.air_water + " " + cell.data.precip + ", TEST TEMP: " + cell.data.test_temp);
 
         let tt = $('#tooltip-template');
         tt.find('#tt-image').css('background-color', poly.oldColor.toCSS());
@@ -83,7 +81,6 @@ function World (app) {
                 poly.onMouseDown = world.showToolTip;
             }
         }
-
         this.built = true;
         this.view.refresh();
     };
@@ -109,7 +106,6 @@ function World (app) {
             let cell = this.map.cells[i];
             let h = cell.data.height;
 
-            cell.data.temp = world.lib.elevationToTemp(cell.data.height);
             cell.data.landHeight = h - world.config.sea_level;
 
             if (h < world.config.sea_level) {
@@ -124,29 +120,44 @@ function World (app) {
         this.calculateGeneralBiomes();
     };
 
+    this.resetBounds = function () {
+        world.bounds.maxPrecip = 0;
+        world.bounds.minPrecipSnow = Number.MAX_SAFE_INTEGER;
+        world.bounds.maxPrecipSnow = 0;
+    };
+
+    this.resetHeightStats = function () {
+        for (let i = 0; i < this.map.cells.length; i++) {
+            let cell = this.map.cells[i];
+            let h = cell.data.height;
+            cell.data.temp = world.lib.elevationToTemp(h);
+            cell.data.precip = 0;
+            cell.data.air_water = 0;
+        }
+    };
+
     this.simulateWindRain = function() {
         let size = world.config.size;
-        world.bounds.maxPrecip = 0;
-
+        this.resetBounds();
+        this.resetHeightStats();
         for (let y = 0; y < size; y++) {
             let ycomp = y * size;
             let temp = this.map.cells[ycomp].data.temp;
             let air_water = 0;
             for (let x = 0; x < size; x++) {
                 let cell = this.map.cells[ycomp + x];
-                cell.data.precip = 0;
-                temp = 0.5 * cell.data.temp + temp * 0.5;
+
+                temp = 0.3 * cell.data.temp + temp * 0.7;
 
                 let air_capacity = 70 * Math.exp(0.08 * temp);
 
-                if (cell.data.biome === B_OCEAN) {
+                if (cell.data.biome === B_OCEAN || cell.data.biome === B_COAST) {
                     air_water += Math.exp(0.1 * temp) * (size / 180);
                     if (air_water > air_capacity) {
                         air_water = air_capacity;
                     }
                 } else {
                     // the amount of water the air can't hold at this temperature
-
                     if (air_water > 0) {
                         let excess = air_water - air_capacity;
                         if (excess < 0) {
@@ -155,7 +166,11 @@ function World (app) {
                             excess = 0.01 * air_water;
                         }
                         let rain = excess * 0.05 * (size / 180);
-                        cell.data.precip = rain ;
+                        let neighbours = this.map.neighbors(cell);
+                        cell.data.precip += rain ;
+                        for (let i = 0; i < neighbours.length; i++) {
+                            neighbours[i].data.precip += rain * 0.3;
+                        }
                         air_water -= rain;
                         world.bounds.maxPrecip = Math.max(world.bounds.maxPrecip, rain);
                     }
@@ -171,9 +186,24 @@ function World (app) {
         for (let i = 0; i < this.map.cells.length; i++) {
             let cell = this.map.cells[i];
             let data = cell.data;
-
+            if (data.biome === B_OCEAN) continue; // the ocean can't change biome!
+            if (data.biome === B_COAST) continue;
             if (data.temp < -3 && data.precip >= 0.005) {
                 data.biome = B_SNOW;
+                world.bounds.minPrecipSnow = Math.min(world.bounds.minPrecipSnow, data.precip);
+                world.bounds.maxPrecipSnow = Math.max(world.bounds.maxPrecipSnow, data.precip);
+            } else if (between(data.temp, -3, 5) && between(data.precip, 1, 100)) {
+                data.biome = B_TUNDRA;
+            } else if (between(data.temp, -3, 20) && between(data.precip, 40, 1000)) {
+                data.biome = B_TEMPFOR;
+            } else if (between(data.temp, 20, 40) && between(data.precip, 40, 1000)) {
+                data.biome = B_TROPFOR;
+            } else {
+                if (data.precip > 0.4) {
+                    data.biome = B_GRASSLAND;
+                } else {
+                    data.biome = B_DESERT;
+                }
             }
         }
     };
@@ -199,7 +229,7 @@ function World (app) {
             for (let i = 0; i < world.map.cells.length; i++) {
                 let cell = world.map.cells[i];
                 let poly = cell.poly;
-                poly.fillColor = new paper.Color(cell.data.height);
+                poly.fillColor = new paper.Color((cell.data.height - 0.5) * 3);
             }
             world.view.refresh();
         },
@@ -224,7 +254,7 @@ function World (app) {
                     let brightness = 1;
                     switch(data.biome) {
                         case B_OCEAN:
-                            brightness = (data.height / world.config.sea_level) * 0.9 + 0.1;
+                            brightness = (data.height / world.config.sea_level) * 0.5 + 0.3;
                             poly.fillColor = ColourDB.base_ocean.multiply(brightness);
                             break;
                         case B_COAST:
@@ -234,12 +264,31 @@ function World (app) {
                             poly.fillColor = ColourDB.base_coast.multiply(brightness);
                             break;
                         case B_SNOW:
-                            brightness = ((data.height - world.config.snow_level) / (1 - world.config.snow_level)) * 0.4 + 0.9;
-                            poly.fillColor = ColourDB.base_snow.multiply(brightness);
+                            brightness = pc_between(data.precip, world.bounds.minPrecipSnow, world.bounds.maxPrecipSnow);
+                            poly.fillColor = ColourDB.base_snow.multiply(brightness * 0.2 + 0.8);
+                            break;
+                        case B_TUNDRA:
+                            poly.fillColor = ColourDB.base_tundra.multiply(data.height);
+                            break;
+                        case B_TEMPFOR:
+                            poly.fillColor = ColourDB.base_temperate.multiply(data.height);
+                            break;
+                        case B_TROPFOR:
+                            poly.fillColor = ColourDB.base_tropical.multiply(data.height);
+                            break;
+                        case B_GRASSLAND:
+                            poly.fillColor = ColourDB.base_grassland.multiply(data.height);
+                            break;
+                        case B_DESERT:
+                            poly.fillColor = ColourDB.base_desert.multiply(data.height);
                             break;
                         case B_UNK:
                         default:
-                            poly.fillColor = new paper.Color(0, data.height* 0.5, 0);
+                            if ((x % 2) ^ (y % 2)) {
+                                poly.fillColor = new paper.Color(0.5);
+                            } else {
+                                poly.fillColor = new paper.Color(0.4);
+                            }
                             break;
                     }
                 }
@@ -254,7 +303,7 @@ function World (app) {
         },
 
         refresh: function() {
-            paper.view.draw();
+            //paper.view.draw();
         },
     };
 
@@ -265,22 +314,52 @@ const B_UNK = 0;
 const B_OCEAN = 1;
 const B_SNOW = 2;
 const B_COAST = 3;
+const B_TUNDRA = 4;
+const B_TEMPFOR = 5;
+const B_TROPFOR = 6;
+const B_GRASSLAND = 7;
+const B_DESERT = 8;
 
 const BiomeDB = [];
 
 
 BiomeDB[B_UNK] = {
     name: "Unknown",
+    vegetation: 0,
 };
 BiomeDB[B_OCEAN] = {
     name: "Ocean",
+    vegetation: 0,
 };
 BiomeDB[B_SNOW] = {
     name: "Snow",
+    vegetation: 0,
 };
 BiomeDB[B_COAST] = {
     name: "Coast",
+    vegetation: 0,
 };
+BiomeDB[B_TUNDRA] = {
+    name: "Tundra",
+    vegetation: 1,
+};
+BiomeDB[B_TEMPFOR] = {
+    name: "Temperate Forest",
+    vegetation: 3,
+};
+BiomeDB[B_TROPFOR] = {
+    name: "Tropical Forest",
+    vegetation: 3,
+};
+BiomeDB[B_GRASSLAND] = {
+    name: "Grassland",
+    vegetation: 2,
+};
+BiomeDB[B_DESERT] = {
+    name: "Desert",
+    vegetation: 0,
+};
+
 
 function Cell (x, y) {
     this.x = x;
@@ -303,6 +382,24 @@ function Grid(size) {
 
     this.getCell = function(x, y) {
         return this.cells[y * this.size + x];
+    };
+
+    this.neighbors = function (cell) {
+        let xmin = Math.max(0, cell.x - 1);
+        let xmax = Math.min(this.size - 1, cell.x + 1);
+
+        let ymin = Math.max(0, cell.y - 1);
+        let ymax = Math.min(this.size - 1, cell.y + 1);
+
+        let results = [];
+        for (let y = ymin; y <= ymax; y++) {
+            let ycomp = y * size;
+            for (let x = xmin; x <= xmax; x++) {
+                if (x === cell.x && y === cell.y) continue;
+                results.push(this.getCell(x, y));
+            }
+        }
+        return results;
     };
 
     return this;

@@ -15,6 +15,7 @@ $(function() {
                 precip: 0,
             },
             built: false,
+            progress: 50,
             view: {
                 biomes: true,
                 height: false,

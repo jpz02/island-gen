@@ -88,6 +88,10 @@
                     <input type="button" v-on:click="initWorld" class="btn btn-primary" value="Generate">
                 </div>
             </fieldset>
+            <!--<div class="progress">-->
+                <!--<div class="progress-bar" role="progressbar" v-bind:style="{ width: progress + '%'}">-->
+                <!--</div>-->
+            <!--</div>-->
             <fieldset v-on:change="updateContent" id="ui-tier2-settings" :disabled="!built">
                 <h4>Content</h4>
                 <p class="message-box" :hidden="built">You need to build the world first before you can make changes to the content</p>
