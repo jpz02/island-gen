@@ -5,6 +5,7 @@
     <script src="js/contrib/bootstrap.js"></script>
     <script src="js/contrib/vue.js"></script>
     <script src="js/contrib/paper-full.js"></script>
+    <script src="js/contrib/priority-queue.js"></script>
     <script src="js/lib.js"></script>
     <script src="js/world.js"></script>
     <script src="js/app.js"></script>
@@ -24,8 +25,10 @@
                 <div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
                     <div class="btn-group btn-group-sm" role="group" aria-label="First group">
                         <button v-on:click="showBiomes" v-bind:class="{ active: view.biomes }" class="btn btn-default">Biomes</button>
+                        <button v-on:click="showResources" v-bind:class="{ active: view.resources }" class="btn btn-default">Resources</button>
                         <button v-on:click="showHeight" v-bind:class="{ active: view.height }" class="btn btn-default">Height Map</button>
                         <button v-on:click="showPrecip" v-bind:class="{ active: view.precip }" class="btn btn-default">Precipitation</button>
+                        <button v-on:click="showScoring" v-bind:class="{ active: view.scoring }" :disabled="!scored" class="btn btn-default">Scoring</button>
                     </div>
                 </div>
             </fieldset>
@@ -49,6 +52,22 @@
                         <li>
                             <span class="tt-label">Precipitation</span>
                             <span class="tt-data">{{ popup.precip }} mm</span>
+                        </li>
+                        <li>
+                            <span class="tt-label">Vegetation</span>
+                            <span class="tt-data">{{ popup.vegetation }}%</span>
+                        </li>
+                        <li :hidden="!view.scoring">
+                            <span class="tt-label">Score</span>
+                            <span class="tt-data">{{ popup.score }}%</span>
+                        </li>
+                        <li :hidden="popup.resources.length === 0">
+                            <span class="tt-label">Resources</span>
+                            <span class="tt-data">
+                                <ul>
+                                    <li v-for="res in popup.resources">{{ res.name }}: {{ res.amount }}</li>
+                                </ul>
+                            </span>
                         </li>
                     </ul>
                     <div id="tt-image"></div>
@@ -84,14 +103,16 @@
                     <input type="number" v-model.number="world.config.perlin.diminish" step="0.01" min="0" max="1" class="form-control" id="diminish_value" placeholder="Enter diminishing factor">
                     <small id="diminishHelp" class="form-text text-muted">By how much should amplitude diminish</small>
                 </div>
+                <div class="form-group form-group-sm col-xs-12 col-sm-6">
+                    <label for="do_rivers">Rivers and Lakes</label>
+                    <div class="checkbox">
+                        <label><input id="do_rivers" v-model="view.rivers" type="checkbox" value="">Simulate rivers</label>
+                    </div>
+                </div>
                 <div class="form-group form-group-sm col-sm-12">
                     <input type="button" v-on:click="initWorld" class="btn btn-primary" value="Generate">
                 </div>
             </fieldset>
-            <!--<div class="progress">-->
-                <!--<div class="progress-bar" role="progressbar" v-bind:style="{ width: progress + '%'}">-->
-                <!--</div>-->
-            <!--</div>-->
             <fieldset v-on:change="updateContent" id="ui-tier2-settings" :disabled="!built">
                 <h4>Content</h4>
                 <p class="message-box" :hidden="built">You need to build the world first before you can make changes to the content</p>
@@ -111,6 +132,14 @@
                     <small id="snowLevelHelp" class="form-text text-muted">Percentage above which is snow</small>
                 </div>
             </fieldset>
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" v-bind:style="{ width: progress + '%'}">
+                </div>
+            </div>
+
+            <div class="form-group form-group-sm">
+                <input type="button" v-on:click="analyseMap" :disabled="scoring || !built" class="btn btn-sm btn-primary" value="Analyse">
+            </div>
         </div>
     </div>
 </div>

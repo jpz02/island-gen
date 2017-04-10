@@ -101,3 +101,7 @@ h1, h2 {
 fieldset {
     margin: 8px 0;
 }
+
+.progress .progress-bar {
+    transition: none;
+}

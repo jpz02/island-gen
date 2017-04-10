@@ -26,6 +26,7 @@ function RandomGen (seed) {
     return this;
 }
 
+// just playing around with 'actual' javascript random. the seed is redundant here
 function MathRandomGen (seed) {
 
     this.seed = function(seed) {
@@ -228,8 +229,9 @@ let ColourDB = {
     base_tropical: new paper.Color("#0c9310"),
     base_grassland: new paper.Color("#86ca65"),
     base_desert: new paper.Color("#e8d498"),
-
-
+    base_river: new paper.Color("#4aabff"),
+    base_gold: new paper.Color("#ffe51a"),
+    base_food: new paper.Color("#C00"),
 
 
     scale: function (color, brightness) {
@@ -247,5 +249,12 @@ function between (x, min, max) {
 }
 
 function pc_between (x, min, max) {
-    return (x - min) / (max - min);
+    if (x <= min) {
+        return 0;
+    } else if (x > max) {
+        return 1;
+    } else {
+        return Math.min(1, (x - min) / (max - min));
+    }
+
 }
