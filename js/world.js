@@ -10,7 +10,7 @@ function World (app) {
     this.selected = null;
 
     this.config = {
-        seed: 14,
+        seed: 342337,
         perlin: {
             octaves: 8,
             scale: 128,
@@ -43,7 +43,7 @@ function World (app) {
         }
 
         let score = world.map.cells[event.target.x - (event.target.x % 2) + (event.target.y - (event.target.y % 2) ) * world.config.size].data.score;
-        score = score / world.bounds.maxScore
+        score = score / world.bounds.maxScore;
 
         world.app.popup = {
             title: biome.name,
@@ -129,6 +129,8 @@ function World (app) {
 
     this.makeHeightMap = function() {
         let size = this.config.size;
+        world.min = 1;
+        world.max = 0;
         let perlin = new PerlinNoise(
             this.config.seed,
             this.config.perlin.octaves,
@@ -140,8 +142,11 @@ function World (app) {
                 let cell = this.map.cells[ycomp + x];
                 cell.data = {};
                 cell.data.height = perlin.noise(x, y, this.config.perlin.diminish);
+                world.min = Math.min(cell.data.height, world.min);
+                world.max = Math.max(cell.data.height, world.max);
             }
         }
+        console.log(world.bounds.min + " " + world.bounds.max);
     };
 
     this.calculateHeightBiomes = function() {
@@ -163,7 +168,7 @@ function World (app) {
         }
         this.simulateWindRain();
         this.calculateGeneralBiomes();
-        if (world.app.view.rivers) {
+        if (world.app.rivers) {
             // plant the rivers
             for (let i = 0; i < world.riverSeeds.length; i++) {
                 this.calculateRivers(world.riverSeeds[i]);
@@ -423,10 +428,10 @@ function World (app) {
                 let n = neighbors[i];
                 if (closed[n.y * world.config.size + n.x] !== true) {
                     let weight = 1;
-                    if (n.data.is_water) weight += 14;
-                    if (BiomeDB[n.data.biome].vegetation > 2) weight += 0.5 * n.data.vegetation;
-                    if (n.data.biome === B_SNOW) weight += 0.5;
+                    if (n.data.is_water) weight += 20;
+                    if (BiomeDB[n.data.biome].vegetation > 2) weight += 1 * n.data.vegetation;
                     if (n.data.biome === B_DESERT) weight += 0.8;
+                    if (n.data.biome === B_SNOW) weight += 0.5;
                     weight += Math.abs(n.data.height - cCell.data.height) * world.config.size;
 
                     queue.queue({cell: n, dist: cDist + weight});
@@ -435,13 +440,13 @@ function World (app) {
 
             let dist_factor = ((world.config.walk_dist - cDist) / world.config.walk_dist) * 0.7 + 0.3;
             score += pc_between(cCell.data.food, 90, 200) * 6 * dist_factor;
-            score += pc_between(cCell.data.gold, 50, 80) * 3 * dist_factor;
+            score += pc_between(cCell.data.gold, 50, 80) * 4 * dist_factor;
             if (BiomeDB[cCell.data.biome].vegetation > 2) {
-                score += 0.1 * dist_factor; // good to have some forest around (for wood etc.)
+                score += 0.005 * dist_factor; // good to have some forest around (for wood etc.)
             }
 
             if (cCell.data.biome === B_GRASSLAND) {
-                score += 0.05 * dist_factor; // flat open grassland is good to have!
+                score += 0.01 * dist_factor; // flat open grassland is good to have!
             }
         }
         world.bounds.maxScore = Math.max(world.bounds.maxScore, score);
@@ -492,7 +497,9 @@ function World (app) {
             for (let i = 0; i < world.map.cells.length; i++) {
                 let cell = world.map.cells[i];
                 let poly = cell.poly;
-                poly.fillColor = new paper.Color((cell.data.height - 0.5) * 3);
+                let color = cell.data.height;
+                if (color < world.config.sea_level) color = world.config.sea_level;
+                poly.fillColor = new paper.Color(pc_between(color, world.config.sea_level, world.max));
             }
         },
 
@@ -522,7 +529,7 @@ function World (app) {
                     let fill = null;
                     switch(data.biome) {
                         case B_OCEAN:
-                            brightness = (data.height / world.config.sea_level) * 0.5 + 0.3;
+                            brightness = (data.height / world.config.sea_level) * 0.6 + 0.1;
                             poly.fillColor = ColourDB.base_ocean.multiply(brightness);
                             break;
                         case B_COAST:

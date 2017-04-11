@@ -26,10 +26,11 @@
                     <div class="btn-group btn-group-sm" role="group" aria-label="First group">
                         <button v-on:click="showBiomes" v-bind:class="{ active: view.biomes }" class="btn btn-default">Biomes</button>
                         <button v-on:click="showResources" v-bind:class="{ active: view.resources }" class="btn btn-default">Resources</button>
-                        <button v-on:click="showHeight" v-bind:class="{ active: view.height }" class="btn btn-default">Height Map</button>
+                        <button v-on:click="showHeight" v-bind:class="{ active: view.height }" class="btn btn-default">Heightmap</button>
                         <button v-on:click="showPrecip" v-bind:class="{ active: view.precip }" class="btn btn-default">Precipitation</button>
                         <button v-on:click="showScoring" v-bind:class="{ active: view.scoring }" :disabled="!scored" class="btn btn-default">Scoring</button>
                     </div>
+                    <a href="#" id="btnsave" class="btn btn-success btn-sm">Save</a>
                 </div>
             </fieldset>
             <div id="canvas-container">
@@ -51,7 +52,7 @@
                         </li>
                         <li>
                             <span class="tt-label">Precipitation</span>
-                            <span class="tt-data">{{ popup.precip }} mm</span>
+                            <span class="tt-data">{{ popup.precip }} cm</span>
                         </li>
                         <li>
                             <span class="tt-label">Vegetation</span>
@@ -106,11 +107,11 @@
                 <div class="form-group form-group-sm col-xs-12 col-sm-6">
                     <label for="do_rivers">Rivers and Lakes</label>
                     <div class="checkbox">
-                        <label><input id="do_rivers" v-model="view.rivers" type="checkbox" value="">Simulate rivers</label>
+                        <label><input id="do_rivers" v-model="rivers" type="checkbox" value="">Simulate rivers</label>
                     </div>
                 </div>
                 <div class="form-group form-group-sm col-sm-12">
-                    <input type="button" v-on:click="initWorld" class="btn btn-primary" value="Generate">
+                    <input type="button" v-on:click="initWorld" class="btn btn-sm btn-primary" value="Generate">
                 </div>
             </fieldset>
             <fieldset v-on:change="updateContent" id="ui-tier2-settings" :disabled="!built">

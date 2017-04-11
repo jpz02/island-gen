@@ -19,6 +19,7 @@ $(function() {
             built: false,
             scoring: false,
             scored: false,
+            rivers: true,
             progress: 0,
             view: {
                 biomes: true,
@@ -26,7 +27,7 @@ $(function() {
                 precip: false,
                 resources: true,
                 scoring: false,
-                rivers: true,
+
             },
         },
 
@@ -45,6 +46,17 @@ $(function() {
                     $('#tooltip-template').hide();
                     app.world.view.resetSelected();
                 }
+            });
+
+            $('#btnsave').on('click', function(ev) {
+                let link = $(this).get()[0];
+                link.href = $('#main-stage').get()[0].toDataURL('image/png');
+                link.download = "world_gen_" +
+                    app.world.config.seed + "_" +
+                    app.world.config.size + "_" +
+                    app.world.config.perlin.scale + "_" +
+                    app.world.config.perlin.octaves +
+                    ".png";
             });
         },
 
@@ -75,6 +87,10 @@ $(function() {
                 this.clearAllViews();
                 this.view.biomes = true;
                 this.view.resources = true;
+                this.scoring = false;
+                this.scored = false;
+                this.progress = 0;
+                this.view.scoring = false;
                 this.updateView();
             },
 
