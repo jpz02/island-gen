@@ -336,7 +336,7 @@ function World (app) {
         });
         queue.queue(cell);
         while (queue.length > 0) {
-            if ((queue.peek()).data.height > depth + max_depth)
+            if ((queue.peek()).data.height > depth + max_depth) {
                 // if we've had to back track up a certain amount, quit.
                 // this stops filling a basin after a certain depth.
                 break;
