@@ -1,14 +1,18 @@
+/**
+ *  By James Aichinger 2017
+ *  World Class
+ */
+
 function World (app) {
-    let world = this;
-    this.map = [];
-    this.scoreTiles = [];
-    this.app = app;
+    let world = this;  // make sure the parent world can be referenced from further function definitions
+    this.map = [];     // used to store all the cells that make up the 2D map, includes cell information
+    this.scoreTiles = [];   // similar to above but stores the paperjs polygons that make up the overlay
+    this.app = app;    // store a reference back to the application, used to update state on the app.
 
-    this.map_layer = null;
-    this.over_layer = null;
+    this.selected = null;  // when a user clicks a cell for more info, a link to it is stored here.
 
-    this.selected = null;
-
+    // this structure stores the configuration for the map generator. A set of default configuartion is
+    // provided.
     this.config = {
         seed: 342337,
         perlin: {
@@ -25,9 +29,11 @@ function World (app) {
         walk_dist: 40,
     };
 
-    this.bounds = {};
+    this.bounds = {}; // used to store limits of actual generated data.
     this.riverSeeds = [];
 
+    // prepares and displays a tooltip when the user selects a cell
+    // this tooltip contains all the information relevant to the cell
     this.showToolTip = function(event) {
         let cell = world.map.getCell(event.target.x, event.target.y);
         let poly = cell.poly;
@@ -42,9 +48,11 @@ function World (app) {
             resources.push({name: "Gold", amount: cell.data.gold});
         }
 
+        // not every cell is scored, so we need to translate to the cell which contains the score.
         let score = world.map.cells[event.target.x - (event.target.x % 2) + (event.target.y - (event.target.y % 2) ) * world.config.size].data.score;
         score = score / world.bounds.maxScore;
 
+        // the information is pass through here.
         world.app.popup = {
             title: biome.name,
             elevation: (cell.data.landHeight * real).toFixed(2),
@@ -80,10 +88,11 @@ function World (app) {
     this.init = function() {
         let size = this.config.size;
         this.map = new Grid(size);
-        this.built = false;
         this.origSeed = world.config.seed;
-        this.rand = new RandomGen(this.origSeed);
+        this.rand = new RandomGen(this.origSeed); // used to place resources and river starts
 
+        // generate the tiles that make up the actual map in the map layer. These are the tiles which will be
+        // coloured depending on the biome, etc.
         let canvasH = paper.view.size.height;
         let cellLength = canvasH / size;
         let cellSize = new paper.Size(cellLength, cellLength);
@@ -102,11 +111,10 @@ function World (app) {
             }
         }
 
+        // switch to the overlay layer and fill it with tiles. These tiles will be hidden by default.
         paper.project.layers[1].activate();
-
         let scoreLength = cellLength * 1;
         let scoreSize = cellSize.multiply(1);
-
         for (let y = 0; y < size; y++) {
             let ycomp = y * size;
             for (let x = 0; x < size; x++) {
@@ -122,11 +130,10 @@ function World (app) {
         paper.project.layers[1].fillColor = "#000";
         paper.project.layers[1].visible = false;
         paper.project.layers[0].activate();
-
-        this.built = true;
         this.view.refresh();
     };
 
+    // here the perlin noise is generated and stored as the height in the cells.
     this.makeHeightMap = function() {
         let size = this.config.size;
         world.min = 1;
@@ -146,17 +153,19 @@ function World (app) {
                 world.max = Math.max(cell.data.height, world.max);
             }
         }
-        console.log(world.bounds.min + " " + world.bounds.max);
     };
 
-    this.calculateHeightBiomes = function() {
+    // this is the function which starts the entire population of biomes and resources
+    // it runs the wind and rain simulation and places rivers and resources.
+    this.calculateBiomes = function() {
         world.riverSeeds = [];
         for (let i = 0; i < this.map.cells.length; i++) {
             let cell = this.map.cells[i];
             let h = cell.data.height;
             cell.data.is_water = false;
-            cell.data.landHeight = h - world.config.sea_level;
+            cell.data.landHeight = h - world.config.sea_level; // a friendly height for the user to see
 
+            // use the height to place the oceans and the coast.
             if (h < world.config.sea_level) {
                 cell.data.biome = B_OCEAN;
                 cell.data.is_water = true;
@@ -177,6 +186,7 @@ function World (app) {
         this.dropResources();
     };
 
+    // bounds are used mostly for colouring the cells and the like, they to be reset between subsequent runs
     this.resetBounds = function () {
         world.bounds = {};
         world.bounds.maxPrecip = 0;
@@ -186,6 +196,7 @@ function World (app) {
         world.bounds.maxScore = 0;
     };
 
+    // the state of cells needs to be reset between runs
     this.resetCellStats = function () {
         world.riverSeeds = [];
         world.rand = new RandomGen(world.origSeed);
@@ -201,27 +212,30 @@ function World (app) {
         }
     };
 
+    // this function blows a single direction wind across the map, from left to right.
+    // this wind creates precipitation and redistributes heat.
     this.simulateWindRain = function() {
         let size = world.config.size;
         this.resetBounds();
         this.resetCellStats();
         for (let y = 0; y < size; y++) {
             let ycomp = y * size;
-            let temp = this.map.cells[ycomp].data.temp;
+            let temp = this.map.cells[ycomp].data.temp; // the air temp is whatever the first cell is to start with
             let air_water = 0;
             for (let x = 0; x < size; x++) {
                 let cell = this.map.cells[ycomp + x];
 
-                temp = 0.3 * cell.data.temp + temp * 0.7;
+                temp = 0.3 * cell.data.temp + temp * 0.7; // the air temp will change based on the current cell
+                let air_capacity = 70 * Math.exp(0.08 * temp); // find the water capacity given the current temp
 
-                let air_capacity = 70 * Math.exp(0.08 * temp);
-
+                // if we're over water we need to collect water from evaporation
                 if (cell.data.is_water === true || cell.data.biome === B_COAST) {
                     air_water += Math.exp(0.1 * temp) * (size / 180);
                     if (air_water > air_capacity) {
                         air_water = air_capacity;
                     }
                 } else {
+                    // we are over land, we need to cacluate how much rain
                     // the amount of water the air can't hold at this temperature
                     if (air_water > 0) {
                         let excess = air_water - air_capacity;
@@ -240,25 +254,29 @@ function World (app) {
                     }
 
                 }
-                cell.data.air_water = air_water;
+                cell.data.air_water = air_water; // stored for debugging, it's the amount of water in the air above
                 cell.data.temp = temp;
             }
         }
 
         for (let i = 0; i < this.map.cells.length; i++) {
             let cell = this.map.cells[i];
+            // find out what the maximum precipitation on the map is
             world.bounds.maxPrecip = Math.max(world.bounds.maxPrecip, cell.data.precip);
         }
     };
 
+    // given the temperature and precipitation calculate the different land biomes.
     this.calculateGeneralBiomes = function() {
         for (let i = 0; i < this.map.cells.length; i++) {
             let cell = this.map.cells[i];
             let data = cell.data;
             data.vegetation = 0;
             if (data.biome === B_OCEAN) continue; // the ocean can't change biome!
-            if (data.biome === B_COAST) continue;
-            if (data.biome === B_RIVER) continue;
+            if (data.biome === B_COAST) continue; // coast can't change either
+            if (data.biome === B_RIVER) continue; // nor rivers
+
+            // snow definition
             if (data.temp < -3 && data.precip >= 0.005) {
                 data.biome = B_SNOW;
                 if (this.rand.next() < 0.04 * (data.precip / world.bounds.maxPrecipSnow)) {
@@ -267,15 +285,19 @@ function World (app) {
                 world.bounds.minPrecipSnow = Math.min(world.bounds.minPrecipSnow, data.precip);
                 world.bounds.maxPrecipSnow = Math.max(world.bounds.maxPrecipSnow, data.precip);
             } else if (between(data.temp, -3, 5) && between(data.precip, 1, 200)) {
+                // tundra definition
                 data.biome = B_TUNDRA;
                 data.vegetation = pc_between(data.precip, 1, 200);
             } else if (between(data.temp, -3, 20) && between(data.precip, 40, 1000)) {
+                // temporate forest definiton
                 data.biome = B_TEMPFOR;
                 data.vegetation = pc_between(data.precip, 40, 200);
             } else if (between(data.temp, 20, 40) && between(data.precip, 40, 1000)) {
+                // tropical forest definiton
                 data.biome = B_TROPFOR;
                 data.vegetation = pc_between(data.precip, 40, 200);
             } else {
+                // everything else is either grassland, or desert, precipitation decides.
                 if (data.precip > 0.5) {
                     data.biome = B_GRASSLAND;
                     data.vegetation = 0;
@@ -289,7 +311,8 @@ function World (app) {
                 world.riverSeeds.push(cell);
             }
         }
-        // stage 2
+        // we need to go back and assign GRASSLAND a vegetation coverage. To do this we need to find out what the max
+        // precipitation for the grassland biome was. We got that from above, so we calculate it now.
         for (let g = 0; g < this.map.cells.length; g++) {
             let cell = this.map.cells[g];
             let data = cell.data;
@@ -300,6 +323,8 @@ function World (app) {
         }
     };
 
+    // We have the river starting points at this stage, they were found during processes higher in the chain.
+    // given a starting cell, start a river from there. this function performs a greed DFS search to do so.
     this.calculateRivers = function (cell) {
         let closed = [];
         let max_depth = 0.025;
@@ -311,7 +336,9 @@ function World (app) {
         });
         queue.queue(cell);
         while (queue.length > 0) {
-            if ((queue.peek()).data.height > depth + max_depth) {
+            if ((queue.peek()).data.height > depth + max_depth)
+                // if we've had to back track up a certain amount, quit.
+                // this stops filling a basin after a certain depth.
                 break;
             }
 
@@ -321,9 +348,12 @@ function World (app) {
                 continue;
             }
 
+            // if in our search encounters ocean, we are done.
             if (current.data.biome === B_OCEAN) {
                 break;
             } else if (current.data.biome === B_RIVER) {
+                // if we hit a river, then increase the depth the river can get to.
+                // the idea that when rivers combine, they have more power.
                 max_depth = 0.047;
             }
 
@@ -337,6 +367,7 @@ function World (app) {
                 }
             }
 
+            // we don't want the river to be visible until it exits the snowfield.
             if (current.data.biome !== B_SNOW) {
                 current.data.biome = B_RIVER;
                 current.data.is_water = true;
@@ -355,6 +386,8 @@ function World (app) {
         }
     };
 
+    // the map's supply of food and gold is placed by this function. It's all done using probabilities, which have
+    // certain biases to the terrain. It's using a seeded number generator, so it's deterministic.
     this.dropResources = function() {
         let n = 0;
         for (let i = 0; i < this.map.cells.length; i++) {
@@ -396,8 +429,10 @@ function World (app) {
         }
     };
 
+    // the scoring function for a given cell, this function is called recursively by scoreCells.
     this.scoreCell = function (cell) {
-        if (cell.data.is_water) return 0;
+        if (cell.data.is_water) return 0; // if it's water it has a score of 0
+        // does a kind of BFS search
         let score = 0;
         let queue = new PriorityQueue({
             comparator: function (a, b) {
@@ -414,13 +449,17 @@ function World (app) {
             let cDist = current.dist;
 
             if (closed[cCell.y * world.config.size + cCell.x] === true) {
+                // we have already visited this cell, skip it.
+                // bit of a hack to deal with any double ups that made it into the open list.
                 continue;
             }
 
             if (cDist > world.config.walk_dist) {
+                // we have exceeded our distance, stop
                 break;
             }
 
+            // mark the current cell as explored
             closed[cCell.y * world.config.size + cCell.x] = true;
             let neighbors = world.map.fourNeighbors(cCell);
 
@@ -428,12 +467,13 @@ function World (app) {
                 let n = neighbors[i];
                 if (closed[n.y * world.config.size + n.x] !== true) {
                     let weight = 1;
-                    if (n.data.is_water) weight += 20;
-                    if (BiomeDB[n.data.biome].vegetation > 2) weight += 1 * n.data.vegetation;
+                    if (n.data.is_water) weight += 20; // crossing water is really slow
+                    if (BiomeDB[n.data.biome].vegetation > 2) weight += 1 * n.data.vegetation; // dense forest is also slow
                     if (n.data.biome === B_DESERT) weight += 0.8;
                     if (n.data.biome === B_SNOW) weight += 0.5;
-                    weight += Math.abs(n.data.height - cCell.data.height) * world.config.size;
+                    weight += Math.abs(n.data.height - cCell.data.height) * world.config.size; // the slope of terrain affects speed
 
+                    // using the cost of the moving to the cell, add it to the open list.
                     queue.queue({cell: n, dist: cDist + weight});
                 }
             }
@@ -471,6 +511,9 @@ function World (app) {
             let cell = world.map.cells[ycomp + x];
             cell.data.score = world.scoreCell(cell);
         }
+        // using a timeout and recalling the the scoring function means the browser has a chance to update the
+        // page after each row of scoring. Stops the browser looking up entirely whilst scoring is happening. because
+        // scoring is slow :(
         setTimeout(function() {
             world.scoreCells(0, y + step);
         });

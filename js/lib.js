@@ -1,3 +1,10 @@
+/**
+ * By James Aichinger 2017
+ */
+
+// A simple seedable pseudorandom number generator.
+// used by simplex noise for generating perlin noise.
+// also used to place resources and rivers.
 function RandomGen (seed) {
     this.val = 0;
 
@@ -171,12 +178,23 @@ function SimplexNoise (seed) {
     return this;
 }
 
+/**
+ * PerlinNoise class produces a produces a noise value for a given 2D coordinate
+ *  it does this by combining multiple frequencies of SimplexNoise and scaling the
+ *  contribution of each layer accordingly
+ * @param seed
+ * @param octaves
+ * @param scale
+ * @returns {PerlinNoise}
+ * @constructor
+ */
 function PerlinNoise (seed, octaves, scale) {
     this.simplex = [];
     this.seed = seed;
     this.octaves = octaves;
     this.scale = scale;
 
+    // creates the simplex noise generators
     this.initNoise = function() {
         let scale = this.scale;
 
@@ -188,6 +206,7 @@ function PerlinNoise (seed, octaves, scale) {
         this.octaves = this.simplex.length;
     };
 
+    // Calculates the noise for a given coordinate
     this.noise = function (x, y, diminish) {
         let result = 0;
         let scale = this.scale;
@@ -204,6 +223,7 @@ function PerlinNoise (seed, octaves, scale) {
         return result / max;
     };
 
+    // Makes a 2D grid of perln noise.
     this.makeMap = function (width, height, diminish) {
         let map = [];
         for (let y = 0; y < height; y++) {
@@ -215,11 +235,13 @@ function PerlinNoise (seed, octaves, scale) {
         return map;
     };
 
-    this.initNoise();
+    this.initNoise(); // constructor or sorts.
 
     return this;
 }
 
+// provides a list of known colours to the application. Colours can be referenced using a friendly name
+// and updated in a single location. There are also some helper functions to recolour a colour.
 let ColourDB = {
     base_ocean: new paper.Color("#263E8C"),
     base_coast: new paper.Color("#FFA"),
@@ -244,10 +266,13 @@ let ColourDB = {
     }
 };
 
+// returns true if a number is covered by an inclusive range
+// false otherwise
 function between (x, min, max) {
     return x >= min && x <= max;
 }
 
+// calculates the percentage of how far a value is between to other values.
 function pc_between (x, min, max) {
     if (x <= min) {
         return 0;
